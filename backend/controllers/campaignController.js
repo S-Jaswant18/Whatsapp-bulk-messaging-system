@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { processBulkCampaign } from '../services/bulkEngine.js';
 
 export const getCampaigns = async (req, res) => {
   try {
@@ -45,6 +46,13 @@ export const createCampaign = async (req, res) => {
       },
       include: { messages: true }
     });
+
+    // If not scheduled (immediate), start processing in background
+    if (campaign.status === 'processing') {
+      processBulkCampaign(campaign.id).catch(err =>
+        console.error(`Background campaign processing error for ${campaign.id}:`, err)
+      );
+    }
 
     res.status(201).json(campaign);
   } catch (error) {

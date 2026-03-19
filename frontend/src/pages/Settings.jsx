@@ -86,7 +86,8 @@ const Settings = () => {
     const getProfilePhotoUrl = (photoPath) => {
         if (!photoPath) return null;
         if (photoPath.startsWith('http')) return photoPath;
-        return `http://localhost:5000/${photoPath}`;
+        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+        return `${baseUrl}/${photoPath}`;
     };
 
     return (

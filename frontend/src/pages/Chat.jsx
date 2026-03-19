@@ -24,14 +24,45 @@ const Chat = () => {
     const scrollRef = useRef();
 
     useEffect(() => {
-        const newSocket = io('http://localhost:5000');
+        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+        const newSocket = io(baseUrl);
         setSocket(newSocket);
 
+        const normalize = (phone) => phone ? phone.toString().replace(/\D/g, '') : '';
+
+        // Listen for global new_message – use normalized comparison
         newSocket.on('new_message', (msg) => {
-            if (selectedContact && msg.from === selectedContact.phone) {
-                setMessages(prev => [...prev, { ...msg, is_incoming: true }]);
+            if (selectedContact) {
+                const sPhone = normalize(selectedContact.phone);
+                const rPhone = normalize(msg.from);
+                if (sPhone.includes(rPhone) || rPhone.includes(sPhone)) {
+                    setMessages(prev => [...prev, { ...msg, is_incoming: true }]);
+                }
             }
         });
+
+        // Listen for room-specific messages
+        newSocket.on('room_message', (msg) => {
+            console.log('Room message received:', msg);
+            if (selectedContact) {
+                const sPhone = normalize(selectedContact.phone);
+                const rPhone = normalize(msg.from);
+                if (sPhone.includes(rPhone) || rPhone.includes(sPhone)) {
+                    setMessages(prev => [...prev, { ...msg, is_incoming: true }]);
+                }
+            }
+        });
+
+        // When a contact is selected, join its room (NORMALIZED)
+        if (selectedContact) {
+            const cleanPhone = normalize(selectedContact.phone);
+            // Join 10-digit variant if applicable, or the full 12-digit
+            newSocket.emit('joinRoom', cleanPhone);
+            if (cleanPhone.length > 10) {
+                newSocket.emit('joinRoom', cleanPhone.slice(-10));
+            }
+            console.log('Joined room for:', cleanPhone);
+        }
 
         return () => newSocket.close();
     }, [selectedContact]);
@@ -67,22 +98,36 @@ const Chat = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedContact) return;
 
-        try {
-            // In a real app, call backend to send message via WhatsApp Cloud API
-            // For demo, we just add it to the UI
-            const msg = {
-                id: Date.now(),
-                content: newMessage,
-                is_incoming: false,
-                created_at: new Date(),
-                status: 'sent'
-            };
-            setMessages([...messages, msg]);
-            setNewMessage('');
+        const tempId = Date.now();
+        const tempMsg = {
+            id: tempId,
+            content: newMessage,
+            is_incoming: false,
+            created_at: new Date(),
+            status: 'pending'
+        };
 
-            // await api.post('/chat/send', { to: selectedContact.phone, text: newMessage });
+        setMessages(prev => [...prev, tempMsg]);
+        const textToSend = newMessage;
+        setNewMessage('');
+
+        try {
+            const response = await api.post('/messages/send', {
+                recipientPhone: selectedContact.phone,
+                content: textToSend,
+                contact_id: selectedContact.id
+            });
+
+            if (response.data.success) {
+                setMessages(prev => prev.map(m =>
+                    m.id === tempId ? { ...m, status: 'sent', message_id: response.data.data.message_id } : m
+                ));
+            }
         } catch (error) {
-            console.error(error);
+            console.error('Failed to send message:', error);
+            setMessages(prev => prev.map(m =>
+                m.id === tempId ? { ...m, status: 'failed' } : m
+            ));
         }
     };
 

@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { sendTextMessage, sendInteractiveMessage } from '../services/whatsappService.js';
 
 // @desc    Send WhatsApp message
 // @route   POST /api/messages/send
@@ -29,13 +30,17 @@ export const sendMessage = async (req, res) => {
     try {
       result = await sendTextMessage(recipientPhone, content);
     } catch (apiError) {
-      console.error('WhatsApp API sending error:', apiError);
+      console.error('WhatsApp API sending error detailed:', apiError.response?.data || apiError.message);
       // Update status to failed
       await prisma.message.update({
         where: { id: message.id },
         data: { status: 'failed' }
       });
-      throw new Error('Failed to send WhatsApp message: ' + (apiError.response?.data?.error?.message || apiError.message));
+      if (global.io) {
+        global.io.emit('dashboard_update');
+      }
+      const errorMessage = apiError.response?.data?.error?.message || apiError.message;
+      throw new Error(`WhatsApp API Error: ${errorMessage}`);
     }
 
     const updatedMessage = await prisma.message.update({
@@ -46,6 +51,10 @@ export const sendMessage = async (req, res) => {
       }
     });
 
+    if (global.io) {
+      global.io.emit('dashboard_update');
+    }
+
     res.status(200).json({
       success: true,
       message: 'Message processed',
@@ -53,6 +62,78 @@ export const sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Send message error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+export const sendInteractive = async (req, res) => {
+  try {
+    const { recipientPhone, interactiveType, headerText, bodyText, footerText, interactiveData } = req.body;
+
+    if (!recipientPhone || !interactiveType) {
+      return res.status(400).json({
+        message: 'Please provide recipient phone number and interactiveType (list/button)'
+      });
+    }
+
+    let interactiveObject = {
+      type: interactiveType, // 'list' or 'button'
+      header: headerText ? { type: "text", text: headerText } : undefined,
+      body: { text: bodyText || "Please make a selection" },
+      footer: footerText ? { text: footerText } : undefined,
+      action: interactiveData // This should contain 'buttons' array or 'sections' array
+    };
+
+    // Clean undefined fields
+    interactiveObject = JSON.parse(JSON.stringify(interactiveObject));
+
+    // Create message record in Prisma
+    const message = await prisma.message.create({
+      data: {
+        content: `[Interactive ${interactiveType}] ${bodyText}`,
+        status: 'pending',
+      },
+    });
+
+    let result;
+    try {
+      result = await sendInteractiveMessage(recipientPhone, interactiveObject);
+    } catch (apiError) {
+      console.error('WhatsApp API sending error detailed:', apiError.response?.data || apiError.message);
+      await prisma.message.update({
+        where: { id: message.id },
+        data: { status: 'failed' }
+      });
+      if (global.io) {
+        global.io.emit('dashboard_update');
+      }
+      const errorMessage = apiError.response?.data?.error?.message || apiError.message;
+      throw new Error(`WhatsApp API Error: ${errorMessage}`);
+    }
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: message.id },
+      data: {
+        status: 'sent',
+        message_id: result.messages[0].id
+      }
+    });
+
+    if (global.io) {
+      global.io.emit('dashboard_update');
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Interactive message sent successfully',
+      data: updatedMessage,
+    });
+  } catch (error) {
+    console.error('Send interactive message error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

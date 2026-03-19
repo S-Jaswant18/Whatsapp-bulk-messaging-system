@@ -57,6 +57,13 @@ app.use('/api/messages', messageRoutes);
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
+    // Allow client to join a room for a specific contact phone number
+    socket.on('joinRoom', (phone) => {
+        const roomName = `room_${phone}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined ${roomName}`);
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
@@ -65,7 +72,7 @@ io.on('connection', (socket) => {
 // Initialize Scheduler
 initScheduler();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

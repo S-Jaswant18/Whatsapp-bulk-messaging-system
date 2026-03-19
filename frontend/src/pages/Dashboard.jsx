@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 import {
   BarChart,
   Bar,
@@ -25,10 +26,22 @@ const Dashboard = () => {
   const [stats, setStats] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalContacts, setTotalContacts] = useState(0);
 
   useEffect(() => {
     fetchStats();
     fetchActivities();
+    fetchContacts();
+
+    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+    const socket = io(baseUrl);
+
+    socket.on('dashboard_update', () => {
+      fetchStats();
+      fetchActivities();
+    });
+
+    return () => socket.close();
   }, []);
 
   const fetchStats = async () => {
@@ -51,6 +64,15 @@ const Dashboard = () => {
     }
   };
 
+  const fetchContacts = async () => {
+    try {
+      const response = await api.get('/contacts');
+      setTotalContacts(response.data.length);
+    } catch (error) {
+      console.error('Failed to fetch contacts', error);
+    }
+  };
+
   const getStatCount = (status) => {
     const stat = stats.find(s => s.status === status);
     return stat ? stat._count : 0;
@@ -59,7 +81,7 @@ const Dashboard = () => {
   const totalSent = stats.reduce((acc, curr) => acc + curr._count, 0);
 
   const cards = [
-    { name: 'Total Contacts', value: '1,284', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { name: 'Total Contacts', value: totalContacts, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { name: 'Sent Messages', value: totalSent, icon: Send, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     { name: 'Delivered', value: getStatCount('delivered'), icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10' },
     { name: 'Failed', value: getStatCount('failed'), icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
@@ -155,9 +177,9 @@ const Dashboard = () => {
                   </div>
                   <div className="ml-auto">
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${activity.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                        activity.status === 'read' ? 'bg-blue-100 text-blue-700' :
-                          activity.status === 'failed' ? 'bg-red-100 text-red-700' :
-                            'bg-slate-100 text-slate-700'
+                      activity.status === 'read' ? 'bg-blue-100 text-blue-700' :
+                        activity.status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-slate-100 text-slate-700'
                       }`}>
                       {activity.status}
                     </span>
