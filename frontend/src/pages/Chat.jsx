@@ -25,18 +25,26 @@ const Chat = () => {
 
     useEffect(() => {
         const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
-        const newSocket = io(baseUrl);
+        console.log('Connecting to socket at:', baseUrl);
+        const newSocket = io(baseUrl, {
+            transports: ['websocket', 'polling'],
+            reconnection: true
+        });
         setSocket(newSocket);
+
+        newSocket.on('connect', () => console.log('Socket Connected:', newSocket.id));
+        newSocket.on('connect_error', (err) => console.error('Socket Connection Error:', err));
 
         const normalize = (phone) => phone ? phone.toString().replace(/\D/g, '') : '';
 
         // Listen for global new_message – use normalized comparison
         newSocket.on('new_message', (msg) => {
+            console.log('Global message received:', msg);
             if (selectedContact) {
                 const sPhone = normalize(selectedContact.phone);
                 const rPhone = normalize(msg.from);
                 if (sPhone.includes(rPhone) || rPhone.includes(sPhone)) {
-                    setMessages(prev => [...prev, { ...msg, is_incoming: true }]);
+                    setMessages(prev => [...prev, { ...msg, is_incoming: true, content: msg.content || msg.body }]);
                 }
             }
         });
@@ -48,7 +56,7 @@ const Chat = () => {
                 const sPhone = normalize(selectedContact.phone);
                 const rPhone = normalize(msg.from);
                 if (sPhone.includes(rPhone) || rPhone.includes(sPhone)) {
-                    setMessages(prev => [...prev, { ...msg, is_incoming: true }]);
+                    setMessages(prev => [...prev, { ...msg, is_incoming: true, content: msg.content || msg.body }]);
                 }
             }
         });
@@ -56,7 +64,6 @@ const Chat = () => {
         // When a contact is selected, join its room (NORMALIZED)
         if (selectedContact) {
             const cleanPhone = normalize(selectedContact.phone);
-            // Join 10-digit variant if applicable, or the full 12-digit
             newSocket.emit('joinRoom', cleanPhone);
             if (cleanPhone.length > 10) {
                 newSocket.emit('joinRoom', cleanPhone.slice(-10));
@@ -72,12 +79,20 @@ const Chat = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedContact) {
-            // In a real app, fetch message history for this contact
-            setMessages([
-                { id: 1, content: 'Hey, how can I help you today?', is_incoming: true, created_at: new Date() },
-            ]);
-        }
+        const fetchHistory = async () => {
+            if (selectedContact) {
+                try {
+                    const response = await api.get(`/messages/contact/${selectedContact.id}`);
+                    if (response.data.success) {
+                        setMessages(response.data.data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch chat history:', error);
+                    setMessages([{ id: 'err', content: 'Could not load message history.', is_incoming: true, created_at: new Date() }]);
+                }
+            }
+        };
+        fetchHistory();
     }, [selectedContact]);
 
     useEffect(() => {

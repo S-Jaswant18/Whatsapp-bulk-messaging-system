@@ -3,6 +3,7 @@ import {
   sendMessage,
   sendInteractive,
   getMessageLogs,
+  getContactMessages,
   verifyWebhook,
   receiveWebhook
 } from '../controllers/messageController.js';
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post('/send', auth, sendMessage);
 router.post('/send-interactive', auth, sendInteractive);
 router.get('/logs', auth, getMessageLogs);
+router.get('/contact/:contact_id', auth, getContactMessages);
 
 // Webhook routes (public)
 router.get('/webhook', verifyWebhook);

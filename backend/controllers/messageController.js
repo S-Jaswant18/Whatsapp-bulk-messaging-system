@@ -142,6 +142,39 @@ export const sendInteractive = async (req, res) => {
   }
 };
 
+// @desc    Get messages for a specific contact (chat history)
+// @route   GET /api/messages/contact/:contact_id
+// @access  Private
+export const getContactMessages = async (req, res) => {
+  try {
+    const { contact_id } = req.params;
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { contact_id: parseInt(contact_id) },
+          {
+            // Also match by phone if needed
+            contact: { id: parseInt(contact_id) }
+          }
+        ]
+      },
+      orderBy: { created_at: 'asc' }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: messages
+    });
+  } catch (error) {
+    console.error('Get contact messages error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get message logs for current user
 // @route   GET /api/messages/logs
 // @access  Private
