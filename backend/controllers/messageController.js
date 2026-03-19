@@ -148,13 +148,21 @@ export const sendInteractive = async (req, res) => {
 export const getContactMessages = async (req, res) => {
   try {
     const { contact_id } = req.params;
+    const contact = await prisma.contact.findUnique({
+      where: { id: parseInt(contact_id) }
+    });
+
+    if (!contact) return res.status(404).json({ message: 'Contact not found' });
+
     const messages = await prisma.message.findMany({
       where: {
         OR: [
-          { contact_id: parseInt(contact_id) },
+          { contact_id: contact.id },
+          // Match by content phone if it happened to be saved incorrectly initially
           {
-            // Also match by phone if needed
-            contact: { id: parseInt(contact_id) }
+            contact: {
+              phone: { contains: contact.phone.slice(-10) }
+            }
           }
         ]
       },

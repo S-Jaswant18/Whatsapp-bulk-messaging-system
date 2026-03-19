@@ -58,6 +58,23 @@ export const receiveWebhook = async (req, res) => {
                     contact = allContacts.find(c => normalizePhone(c.phone).includes(from) || from.includes(normalizePhone(c.phone)));
                 }
 
+                // NEW: IF STILL NO CONTACT, CREATE ONE (so it's not orphaned)
+                if (!contact) {
+                    console.log('No contact found for', from, '- Creating auto contact');
+                    // Get a dummy user_id (usually the first admin or a system user)
+                    // In a production app you'd need a more robust way to assign user_id
+                    const firstUser = await prisma.user.findFirst();
+                    if (firstUser) {
+                        contact = await prisma.contact.create({
+                            data: {
+                                name: `WhatsApp ${from.slice(-4)}`,
+                                phone: from,
+                                user_id: firstUser.id
+                            }
+                        });
+                    }
+                }
+
                 // 2. Store incoming message
                 await prisma.message.create({
                     data: {
