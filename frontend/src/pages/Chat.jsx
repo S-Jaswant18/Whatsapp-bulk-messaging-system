@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { BACKEND_ORIGIN } from '../config/runtime';
 
 const Chat = () => {
     const { user } = useAuth();
@@ -27,7 +28,7 @@ const Chat = () => {
     const scrollRef = useRef();
 
     useEffect(() => {
-        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+        const baseUrl = BACKEND_ORIGIN;
         console.log('Connecting to socket at:', baseUrl);
         const newSocket = io(baseUrl, {
             transports: ['websocket', 'polling'],

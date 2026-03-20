@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BACKEND_ORIGIN } from '../config/runtime';
 
 const Settings = () => {
     const { user, setUser } = useAuth();
@@ -116,8 +117,7 @@ const Settings = () => {
     const getProfilePhotoUrl = (photoPath) => {
         if (!photoPath) return null;
         if (photoPath.startsWith('http')) return photoPath;
-        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
-        return `${baseUrl}/${photoPath}`;
+        return `${BACKEND_ORIGIN}/${photoPath}`;
     };
 
     return (

@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { BACKEND_ORIGIN } from '../config/runtime';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -35,8 +36,7 @@ const Sidebar = () => {
   const getProfilePhotoUrl = (photoPath) => {
     if (!photoPath) return null;
     if (photoPath.startsWith('http')) return photoPath;
-    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
-    return `${baseUrl}/${photoPath}`;
+    return `${BACKEND_ORIGIN}/${photoPath}`;
   };
 
   return (

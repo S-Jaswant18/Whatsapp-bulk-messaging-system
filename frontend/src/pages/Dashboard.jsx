@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { BACKEND_ORIGIN } from '../config/runtime';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const Dashboard = () => {
     fetchActivities();
     fetchContacts();
 
-    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+    const baseUrl = BACKEND_ORIGIN;
     const socket = io(baseUrl);
 
     socket.on('dashboard_update', () => {
