@@ -8,6 +8,8 @@ import {
     Paperclip,
     Check,
     CheckCheck,
+    Clock3,
+    AlertCircle,
     User,
     MessageSquare
 } from 'lucide-react';
@@ -21,6 +23,7 @@ const Chat = () => {
     const [contacts, setContacts] = useState([]);
     const [selectedContact, setSelectedContact] = useState(null);
     const [socket, setSocket] = useState(null);
+    const [sendError, setSendError] = useState('');
     const scrollRef = useRef();
 
     useEffect(() => {
@@ -122,6 +125,8 @@ const Chat = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedContact) return;
 
+        setSendError('');
+
         const tempId = Date.now();
         const tempMsg = {
             id: tempId,
@@ -149,6 +154,25 @@ const Chat = () => {
             }
         } catch (error) {
             console.error('Failed to send message:', error);
+
+            try {
+                const fallbackRes = await api.post('/messages/test-whatsapp', {
+                    recipientPhone: selectedContact.phone
+                });
+
+                if (fallbackRes.data?.success) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === tempId ? { ...m, status: 'sent' } : m
+                    ));
+                    setSendError('Text message blocked by WhatsApp policy. Sent hello_world template instead.');
+                    return;
+                }
+            } catch (fallbackError) {
+                console.error('Fallback template send failed:', fallbackError);
+            }
+
+            const backendError = error.response?.data?.error || error.response?.data?.message || error.message;
+            setSendError(backendError);
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
@@ -221,19 +245,32 @@ const Chat = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f0f2f5] bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
+                            {sendError && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg">
+                                    {sendError}
+                                </div>
+                            )}
                             {messages.map((msg) => (
                                 <div
                                     key={msg.id}
                                     className={`flex ${msg.is_incoming ? 'justify-start' : 'justify-end'}`}
                                 >
-                                    <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm relative ${msg.is_incoming ? 'bg-white text-slate-900 rounded-tl-none' : 'bg-blue-600 text-white rounded-tr-none'}`}>
+                                    <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm relative ${msg.is_incoming ? 'bg-white text-slate-900 rounded-tl-none' : msg.status === 'failed' ? 'bg-red-500 text-white rounded-tr-none' : 'bg-blue-600 text-white rounded-tr-none'}`}>
                                         <p className="text-sm leading-relaxed">{msg.content}</p>
                                         <div className={`flex items-center justify-end gap-1 mt-1 ${msg.is_incoming ? 'text-slate-400' : 'text-blue-100'}`}>
                                             <span className="text-[10px] font-medium">
                                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {!msg.is_incoming && (
-                                                <CheckCheck size={14} className={msg.status === 'read' ? 'text-blue-300' : ''} />
+                                                msg.status === 'pending' ? (
+                                                    <Clock3 size={14} className="text-white/80" />
+                                                ) : msg.status === 'failed' ? (
+                                                    <AlertCircle size={14} className="text-white" />
+                                                ) : msg.status === 'delivered' || msg.status === 'read' ? (
+                                                    <CheckCheck size={14} className={msg.status === 'read' ? 'text-blue-300' : ''} />
+                                                ) : (
+                                                    <Check size={14} />
+                                                )
                                             )}
                                         </div>
                                     </div>

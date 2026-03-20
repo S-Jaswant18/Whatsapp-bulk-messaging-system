@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { sendTextMessage, sendInteractiveMessage, sendTemplateMessage } from '../services/whatsappService.js';
+import { toWhatsAppRecipient } from '../utils/phone.js';
 
 // @desc    Send WhatsApp message
 // @route   POST /api/messages/send
@@ -16,7 +17,7 @@ export const sendMessage = async (req, res) => {
     }
 
     // Normalize phone (strip spaces/plus)
-    recipientPhone = recipientPhone.toString().replace(/\D/g, '');
+    recipientPhone = toWhatsAppRecipient(recipientPhone);
 
     // Create message record in Prisma
     const message = await prisma.message.create({
@@ -173,7 +174,7 @@ export const sendWhatsAppTest = async (req, res) => {
       });
     }
 
-    recipientPhone = recipientPhone.toString().replace(/\D/g, '');
+    recipientPhone = toWhatsAppRecipient(recipientPhone);
 
     const result = await sendTemplateMessage(recipientPhone, 'hello_world', 'en_US');
 
