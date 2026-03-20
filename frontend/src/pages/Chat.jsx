@@ -21,8 +21,6 @@ const Chat = () => {
     const [contacts, setContacts] = useState([]);
     const [selectedContact, setSelectedContact] = useState(null);
     const [socket, setSocket] = useState(null);
-    const [socketStatus, setSocketStatus] = useState('disconnected');
-    const [debugInfo, setDebugInfo] = useState('');
     const scrollRef = useRef();
 
     useEffect(() => {
@@ -36,21 +34,17 @@ const Chat = () => {
 
         newSocket.on('connect', () => {
             console.log('Socket Connected:', newSocket.id);
-            setSocketStatus('connected');
         });
         newSocket.on('connect_error', (err) => {
             console.error('Socket Connection Error:', err);
-            setSocketStatus('error');
-            setDebugInfo(err.message);
         });
-        newSocket.on('disconnect', () => setSocketStatus('disconnected'));
+
 
         const normalize = (phone) => phone ? phone.toString().replace(/\D/g, '') : '';
 
         // Listen for global new_message – use normalized comparison
         newSocket.on('new_message', (msg) => {
             console.log('Global message received:', msg);
-            setDebugInfo(`Global msg: ${msg.from}`);
             if (selectedContact) {
                 const sPhone = normalize(selectedContact.phone);
                 const rPhone = normalize(msg.from);
@@ -63,7 +57,6 @@ const Chat = () => {
         // Listen for room-specific messages
         newSocket.on('room_message', (msg) => {
             console.log('Room message received:', msg);
-            setDebugInfo(`Room msg: ${msg.from}`);
             if (selectedContact) {
                 const sPhone = normalize(selectedContact.phone);
                 const rPhone = normalize(msg.from);
@@ -218,11 +211,7 @@ const Chat = () => {
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-bold text-slate-900">{selectedContact.name}</h4>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-xs text-green-500 font-medium">Online</p>
-                                        <span className={`w-2 h-2 rounded-full ${socketStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`} title={socketStatus}></span>
-                                        {debugInfo && <span className="text-[10px] text-slate-400 bg-slate-100 px-1 rounded">{debugInfo}</span>}
-                                    </div>
+                                    <p className="text-xs text-green-500 font-medium">Online</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 text-slate-500">
