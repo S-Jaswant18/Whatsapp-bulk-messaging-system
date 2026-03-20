@@ -6,7 +6,7 @@ import { sendTextMessage, sendInteractiveMessage } from '../services/whatsappSer
 // @access  Private
 export const sendMessage = async (req, res) => {
   try {
-    const { recipientPhone, content, campaign_id, contact_id } = req.body;
+    let { recipientPhone, content, campaign_id, contact_id } = req.body;
 
     // Validation
     if (!recipientPhone) {
@@ -14,6 +14,9 @@ export const sendMessage = async (req, res) => {
         message: 'Please provide recipient phone number'
       });
     }
+
+    // Normalize phone (strip spaces/plus)
+    recipientPhone = recipientPhone.toString().replace(/\D/g, '');
 
     // Create message record in Prisma
     const message = await prisma.message.create({

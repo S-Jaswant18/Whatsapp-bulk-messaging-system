@@ -37,6 +37,7 @@ export const sendTemplateMessage = async (to, templateName, languageCode = 'en_U
   try {
     const sanitizedPhone = sanitizePhone(to);
     console.log(`[WhatsApp API] Sending Template: "${templateName}" to ${sanitizedPhone}`);
+    console.log(`[WhatsApp API] URL: ${whatsappApi.defaults.baseURL}/messages`);
     const response = await whatsappApi.post('/messages', {
       messaging_product: 'whatsapp',
       to: sanitizedPhone,
@@ -46,9 +47,14 @@ export const sendTemplateMessage = async (to, templateName, languageCode = 'en_U
         language: { code: languageCode },
       },
     });
+    console.log(`[WhatsApp API] Response Success:`, JSON.stringify(response.data));
     return response.data;
   } catch (error) {
-    console.error('WhatsApp API Error:', error.response?.data || error.message);
+    console.error('[WhatsApp API] ERROR OBJECT:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     throw error;
   }
 };
@@ -57,15 +63,22 @@ export const sendTextMessage = async (to, text) => {
   try {
     const sanitizedPhone = sanitizePhone(to);
     console.log(`[WhatsApp API] Sending Text to ${sanitizedPhone}: "${text.substring(0, 20)}..."`);
+    console.log(`[WhatsApp API] URL: ${whatsappApi.defaults.baseURL}/messages`);
     const response = await whatsappApi.post('/messages', {
       messaging_product: 'whatsapp',
       to: sanitizedPhone,
       type: 'text',
       text: { body: text },
     });
+    console.log(`[WhatsApp API] Response Success:`, JSON.stringify(response.data));
+    console.log(`[WhatsApp API] Success! Message ID: ${response.data.messages[0].id}`);
     return response.data;
   } catch (error) {
-    console.error('WhatsApp API Error:', error.response?.data || error.message);
+    console.error('[WhatsApp API] ERROR OBJECT:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
 
     // Fallback logic for test numbers (24-hour rule or unregistered rule)
     const errData = error.response?.data?.error;

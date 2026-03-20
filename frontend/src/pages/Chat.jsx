@@ -100,11 +100,15 @@ const Chat = () => {
                     }
                 } catch (error) {
                     console.error('Failed to fetch chat history:', error);
-                    setMessages([{ id: 'err', content: 'Could not load message history.', is_incoming: true, created_at: new Date() }]);
                 }
             }
         };
+
         fetchHistory();
+
+        // Fallback: Refresh chat every 10 seconds if socket is not reliable
+        const interval = setInterval(fetchHistory, 10000);
+        return () => clearInterval(interval);
     }, [selectedContact]);
 
     useEffect(() => {
