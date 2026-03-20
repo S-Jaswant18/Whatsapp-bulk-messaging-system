@@ -3,9 +3,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
+const parseEnv = (value) => {
+  if (!value || typeof value !== 'string') return '';
+  return value.trim().replace(/^['\"]|['\"]$/g, '');
+};
+
+const WHATSAPP_TOKEN = parseEnv(process.env.WHATSAPP_TOKEN);
+const PHONE_NUMBER_ID = parseEnv(process.env.PHONE_NUMBER_ID);
 const API_VERSION = 'v22.0';
+
+if (!WHATSAPP_TOKEN || !PHONE_NUMBER_ID) {
+  console.error('[WhatsApp Service] Missing required env values. Check WHATSAPP_TOKEN and PHONE_NUMBER_ID in deployment environment.');
+}
 
 console.log('\x1b[36m%s\x1b[0m', '--- WhatsApp Service Diagnostics ---');
 console.log('API Version:', API_VERSION);
@@ -29,6 +38,7 @@ const whatsappApi = axios.create({
     Authorization: `Bearer ${WHATSAPP_TOKEN}`,
     'Content-Type': 'application/json',
   },
+  timeout: 15000,
 });
 
 console.log(`[WhatsApp Service] API Base URL: https://graph.facebook.com/${API_VERSION}/${PHONE_NUMBER_ID}/messages`);
@@ -55,6 +65,17 @@ export const sendTemplateMessage = async (to, templateName, languageCode = 'en_U
       data: error.response?.data,
       message: error.message
     });
+
+    const metaError = error.response?.data?.error;
+    if (metaError) {
+      const wrappedError = new Error(metaError.message || error.message);
+      wrappedError.code = metaError.code;
+      wrappedError.subcode = metaError.error_subcode;
+      wrappedError.type = metaError.type;
+      wrappedError.details = error.response?.data;
+      throw wrappedError;
+    }
+
     throw error;
   }
 };
@@ -91,6 +112,16 @@ export const sendTextMessage = async (to, text) => {
       }
     }
 
+    const metaError = error.response?.data?.error;
+    if (metaError) {
+      const wrappedError = new Error(metaError.message || error.message);
+      wrappedError.code = metaError.code;
+      wrappedError.subcode = metaError.error_subcode;
+      wrappedError.type = metaError.type;
+      wrappedError.details = error.response?.data;
+      throw wrappedError;
+    }
+
     throw error;
   }
 };
@@ -109,6 +140,17 @@ export const sendInteractiveMessage = async (to, interactiveObject) => {
     return response.data;
   } catch (error) {
     console.error('WhatsApp API Error (Interactive):', error.response?.data || error.message);
+
+    const metaError = error.response?.data?.error;
+    if (metaError) {
+      const wrappedError = new Error(metaError.message || error.message);
+      wrappedError.code = metaError.code;
+      wrappedError.subcode = metaError.error_subcode;
+      wrappedError.type = metaError.type;
+      wrappedError.details = error.response?.data;
+      throw wrappedError;
+    }
+
     throw error;
   }
 };
@@ -123,6 +165,17 @@ export const markAsRead = async (messageId) => {
     return response.data;
   } catch (error) {
     console.error('WhatsApp API Error:', error.response?.data || error.message);
+
+    const metaError = error.response?.data?.error;
+    if (metaError) {
+      const wrappedError = new Error(metaError.message || error.message);
+      wrappedError.code = metaError.code;
+      wrappedError.subcode = metaError.error_subcode;
+      wrappedError.type = metaError.type;
+      wrappedError.details = error.response?.data;
+      throw wrappedError;
+    }
+
     throw error;
   }
 };

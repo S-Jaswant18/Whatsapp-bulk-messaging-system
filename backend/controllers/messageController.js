@@ -42,8 +42,8 @@ export const sendMessage = async (req, res) => {
       if (global.io) {
         global.io.emit('dashboard_update');
       }
-      const errorMessage = apiError.response?.data?.error?.message || apiError.message;
-      throw new Error(`WhatsApp API Error: ${errorMessage}`);
+      apiError.isWhatsAppApiError = true;
+      throw apiError;
     }
 
     const updatedMessage = await prisma.message.update({
@@ -65,10 +65,17 @@ export const sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Send message error:', error);
-    res.status(500).json({
+    const isWhatsAppError = !!error.isWhatsAppApiError;
+    const statusCode = isWhatsAppError ? 400 : 500;
+
+    res.status(statusCode).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: isWhatsAppError ? 'WhatsApp API error' : 'Server error',
+      error: error.message,
+      code: error.code,
+      subcode: error.subcode,
+      type: error.type,
+      details: error.details
     });
   }
 };
@@ -114,8 +121,8 @@ export const sendInteractive = async (req, res) => {
       if (global.io) {
         global.io.emit('dashboard_update');
       }
-      const errorMessage = apiError.response?.data?.error?.message || apiError.message;
-      throw new Error(`WhatsApp API Error: ${errorMessage}`);
+      apiError.isWhatsAppApiError = true;
+      throw apiError;
     }
 
     const updatedMessage = await prisma.message.update({
@@ -137,10 +144,17 @@ export const sendInteractive = async (req, res) => {
     });
   } catch (error) {
     console.error('Send interactive message error:', error);
-    res.status(500).json({
+    const isWhatsAppError = !!error.isWhatsAppApiError;
+    const statusCode = isWhatsAppError ? 400 : 500;
+
+    res.status(statusCode).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: isWhatsAppError ? 'WhatsApp API error' : 'Server error',
+      error: error.message,
+      code: error.code,
+      subcode: error.subcode,
+      type: error.type,
+      details: error.details
     });
   }
 };
