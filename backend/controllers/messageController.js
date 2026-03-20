@@ -1,5 +1,5 @@
 import prisma from '../config/prisma.js';
-import { sendTextMessage, sendInteractiveMessage } from '../services/whatsappService.js';
+import { sendTextMessage, sendInteractiveMessage, sendTemplateMessage } from '../services/whatsappService.js';
 
 // @desc    Send WhatsApp message
 // @route   POST /api/messages/send
@@ -150,6 +150,43 @@ export const sendInteractive = async (req, res) => {
     res.status(statusCode).json({
       success: false,
       message: isWhatsAppError ? 'WhatsApp API error' : 'Server error',
+      error: error.message,
+      code: error.code,
+      subcode: error.subcode,
+      type: error.type,
+      details: error.details
+    });
+  }
+};
+
+// @desc    Send WhatsApp test template (hello_world)
+// @route   POST /api/messages/test-whatsapp
+// @access  Private
+export const sendWhatsAppTest = async (req, res) => {
+  try {
+    let { recipientPhone } = req.body;
+
+    if (!recipientPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide recipient phone number'
+      });
+    }
+
+    recipientPhone = recipientPhone.toString().replace(/\D/g, '');
+
+    const result = await sendTemplateMessage(recipientPhone, 'hello_world', 'en_US');
+
+    res.status(200).json({
+      success: true,
+      message: 'WhatsApp test template accepted by Meta',
+      data: result
+    });
+  } catch (error) {
+    console.error('WhatsApp test send error:', error);
+    res.status(400).json({
+      success: false,
+      message: 'WhatsApp test failed',
       error: error.message,
       code: error.code,
       subcode: error.subcode,

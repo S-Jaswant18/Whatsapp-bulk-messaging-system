@@ -8,12 +8,12 @@ const parseEnv = (value) => {
   return value.trim().replace(/^['\"]|['\"]$/g, '');
 };
 
-const WHATSAPP_TOKEN = parseEnv(process.env.WHATSAPP_TOKEN);
+const WHATSAPP_TOKEN = parseEnv(process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN);
 const PHONE_NUMBER_ID = parseEnv(process.env.PHONE_NUMBER_ID);
-const API_VERSION = 'v22.0';
+const API_VERSION = parseEnv(process.env.API_VERSION || process.env.VERSION || 'v22.0');
 
 if (!WHATSAPP_TOKEN || !PHONE_NUMBER_ID) {
-  console.error('[WhatsApp Service] Missing required env values. Check WHATSAPP_TOKEN and PHONE_NUMBER_ID in deployment environment.');
+  console.error('[WhatsApp Service] Missing required env values. Check WHATSAPP_TOKEN/ACCESS_TOKEN and PHONE_NUMBER_ID in deployment environment.');
 }
 
 console.log('\x1b[36m%s\x1b[0m', '--- WhatsApp Service Diagnostics ---');
