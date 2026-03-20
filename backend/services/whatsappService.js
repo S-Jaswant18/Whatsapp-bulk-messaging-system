@@ -8,7 +8,11 @@ const parseEnv = (value) => {
   return value.trim().replace(/^['\"]|['\"]$/g, '');
 };
 
-const WHATSAPP_TOKEN = parseEnv(process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN);
+const WHATSAPP_TOKEN = parseEnv(
+  process.env.WHATSAPP_TOKEN ||
+  process.env.ACCESS_TOKEN ||
+  process.env.ACESS_TOKEN
+);
 const PHONE_NUMBER_ID = parseEnv(process.env.PHONE_NUMBER_ID);
 const API_VERSION = parseEnv(process.env.API_VERSION || process.env.VERSION || 'v22.0');
 

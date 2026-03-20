@@ -26,7 +26,37 @@ const Settings = () => {
     const [uploading, setUploading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [showConnectModal, setShowConnectModal] = useState(false);
+    const [testPhone, setTestPhone] = useState('');
+    const [testLoading, setTestLoading] = useState(false);
+    const [testResult, setTestResult] = useState(null);
     const fileInputRef = React.useRef(null);
+
+    const handleWhatsAppTest = async () => {
+        if (!testPhone.trim()) {
+            alert('Please enter a phone number with country code');
+            return;
+        }
+
+        setTestLoading(true);
+        setTestResult(null);
+        try {
+            const response = await api.post('/messages/test-whatsapp', {
+                recipientPhone: testPhone
+            });
+            setTestResult({
+                success: true,
+                message: response.data?.message || 'WhatsApp test sent successfully'
+            });
+        } catch (error) {
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+            setTestResult({
+                success: false,
+                message: errorMessage
+            });
+        } finally {
+            setTestLoading(false);
+        }
+    };
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -228,6 +258,29 @@ const Settings = () => {
                         >
                             Connect API
                         </button>
+
+                        <div className="mt-5 pt-5 border-t border-slate-100 space-y-3 text-left">
+                            <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Test WhatsApp Send</p>
+                            <input
+                                type="text"
+                                value={testPhone}
+                                onChange={(e) => setTestPhone(e.target.value)}
+                                placeholder="e.g. 919159039389"
+                                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
+                            <button
+                                onClick={handleWhatsAppTest}
+                                disabled={testLoading}
+                                className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all disabled:opacity-60"
+                            >
+                                {testLoading ? 'Testing...' : 'Send Test Template'}
+                            </button>
+                            {testResult && (
+                                <p className={`text-xs font-medium ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                                    {testResult.message}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="bg-slate-900 rounded-2xl shadow-xl p-6 text-white relative overflow-hidden">
